@@ -20,8 +20,11 @@ const needsSlice = createSlice({
     deleteNeed: (state, action) => {
       return state.filter((need) => need.id !== action.payload);
     },
+    setNeeds: (state, action) => {
+      return action.payload;  // replace the whole needs array with Firebase data
+    },
   },
 });
 
-export const { toggleNeedMet, addNeed, deleteNeed } = needsSlice.actions;
+export const { toggleNeedMet, addNeed, deleteNeed, setNeeds } = needsSlice.actions;
 export default needsSlice.reducer;

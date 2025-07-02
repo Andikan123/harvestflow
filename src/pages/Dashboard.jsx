@@ -15,7 +15,9 @@ import {
 } from "../redux/slices/TotalSlice";
 import { addNeed, deleteNeed, toggleNeedMet, } from "../redux/slices/NeedSlice";
 import { toast } from "react-toastify";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs,addDoc,
+  deleteDoc,
+  doc, } from "firebase/firestore";
 import { db } from "../firebase";
 
 
@@ -51,7 +53,7 @@ const Dashboard = () => {
 
      dispatch(
   updateTotals({
-    generalIncome: (totals.generalIncome || 0) + totalProfitUSD, // ✅ Add instead of overwrite
+    generalIncome: totalProfitUSD, // ✅ Add instead of overwrite
     tithe: tithe,
     saving: saving,
   })
@@ -98,6 +100,7 @@ const Dashboard = () => {
       if (need.met) dispatch(toggleNeedMet(need.id));
     });
   };
+
 
   // Reusable StatCard component
   const StatCard = ({ icon: Icon, title, amount, color, subtitle, paid, onToggle }) => (
@@ -148,6 +151,58 @@ const Dashboard = () => {
       )}
     </div>
   );
+
+  useEffect(() => {
+  const fetchNeeds = async () => {
+    try {
+      const needsSnapshot = await getDocs(collection(db, "users", "admin", "needs"));
+      const needsFromFirebase = [];
+      needsSnapshot.forEach((doc) => {
+        needsFromFirebase.push({ id: doc.id, ...doc.data() });
+      });
+      // Dispatch to update Redux state (make sure your slice supports replace all)
+      dispatch({ type: "needs/setNeeds", payload: needsFromFirebase });
+    } catch (err) {
+      console.error("Error fetching needs:", err);
+    }
+  };
+
+  fetchNeeds();
+}, [dispatch]);
+
+const handleAddNeed = async (need) => {
+  try {
+    const docRef = await addDoc(collection(db, "users", "admin", "needs"), {
+      title: need.title,
+      amount: need.amount,
+      priority: need.priority,
+      met: false,
+    });
+    dispatch(
+      addNeed({
+        id: docRef.id,
+        ...need,
+        met: false,
+      })
+    );
+    toast.success("Need added successfully!");
+  } catch (error) {
+    toast.error("Failed to add need.");
+    console.error("Add need error:", error);
+  }
+};
+
+const handleDeleteNeed = async (id) => {
+  try {
+    await deleteDoc(doc(db, "users", "admin", "needs", id));
+    dispatch(deleteNeed(id));
+    toast.success("Need deleted successfully!");
+  } catch (error) {
+    toast.error("Failed to delete need.");
+    console.error("Delete need error:", error);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-sky-100 py-18 px-4 sm:px-8">
@@ -291,21 +346,16 @@ const Dashboard = () => {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              const form = e.target;
-              const title = form.title.value.trim();
-              const amount = parseFloat(form.amount.value);
-              const priority = form.priority.value;
-              if (title && !isNaN(amount) && priority) {
-                dispatch(
-                  addNeed({
-                    id: Date.now(),
-                    title,
-                    amount,
-                    priority,
-                  })
-                );
-                form.reset();
-              }
+              e.preventDefault();
+    const form = e.target;
+    const title = form.title.value.trim();
+    const amount = parseFloat(form.amount.value);
+    const priority = form.priority.value;
+    if (title && !isNaN(amount) && priority) {
+      handleAddNeed({ title, amount, priority });
+      form.reset();
+    }
+             
             }}
             className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8"
           >
@@ -389,7 +439,7 @@ const Dashboard = () => {
                   </p>
                   <button
                     className="text-red-600 hover:text-red-800 text-2xl transition"
-                    onClick={() => dispatch(deleteNeed(need.id))}
+                    onClick={() => dispatch(handleDeleteNeed(need.id))}
                     title="Delete Need"
                   >
                     🗑️
