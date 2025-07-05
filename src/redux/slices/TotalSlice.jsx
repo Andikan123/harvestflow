@@ -5,6 +5,7 @@ const initialState = JSON.parse(localStorage.getItem("totals")) || {
   generalIncome: 0,
   businessIncome: 0,
   otherIncome: 0,
+  exchangeIncome: 0,
   tithe: 0,
   partnership: 0,
   expenses: 0,
@@ -23,18 +24,19 @@ const totalSlice = createSlice({
   name: "totals",
   initialState,
  reducers: {
-  updateTotals: (state, action) => {
-    Object.entries(action.payload).forEach(([key, value]) => {
-      if (key === "statusFlags") {
-        state.statusFlags = { ...state.statusFlags, ...value };
-      } else if (key === "generalIncome") {
-        state.generalIncome = value;
-      } else {
-        state[key] = (state[key] || 0) + value;
-      }
-    });
-    localStorage.setItem("totals", JSON.stringify(state));
-  },
+ updateTotals: (state, action) => {
+  Object.entries(action.payload).forEach(([key, value]) => {
+    if (key === "statusFlags") {
+      state.statusFlags = { ...state.statusFlags, ...value };
+    } else if (key === "generalIncome") {
+      state.generalIncome = value;
+    } else {
+      state[key] = value; // ✅ CHANGE THIS FROM += TO =
+    }
+  });
+  localStorage.setItem("totals", JSON.stringify(state));
+},
+
   updateGeneralIncome: (state, action) => {
     const amount = action.payload;
     state.generalIncome = (state.generalIncome || 0) + amount;

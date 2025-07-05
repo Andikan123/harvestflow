@@ -34,10 +34,21 @@ const Dashboard = () => {
   const incomeSources = useSelector((state) => state.incomeSources);
   const statusFlags = totals.statusFlags || {};
 
+ const generalIncome =
+  (totals.businessIncome ?? 0) +
+  (totals.otherIncome ?? 0) +
+  (totals.exchangeIncome ?? 0);
+
+  console.log(totals.exchangeIncome)
+
+
+
  useEffect(() => {
   const fetchProfitIncome = async () => {
     try {
-      const profitSnap = await getDocs(collection(db, "users", "admin", "profits"));
+      const profitSnap = await getDocs(
+        collection(db, "users", "admin", "profits")
+      );
       let totalProfitUSD = 0;
 
       profitSnap.forEach((doc) => {
@@ -47,18 +58,14 @@ const Dashboard = () => {
         }
       });
 
-      // Calculate tithe (10%) and saving (20%) from general income
-      const tithe = totalProfitUSD * 0.1;
-      const saving = totalProfitUSD * 0.2;
+      // Only update exchange income
+      dispatch(
+        updateTotals({
+          exchangeIncome: totalProfitUSD,
+        })
+      );
 
-     dispatch(
-  updateTotals({
-    generalIncome: totalProfitUSD, // ✅ Add instead of overwrite
-    tithe: tithe,
-    saving: saving,
-  })
-);
-
+      // You can optionally move tithe/saving to a derived calculation later
     } catch (err) {
       console.error("Error fetching profit income:", err);
     }
@@ -66,6 +73,7 @@ const Dashboard = () => {
 
   fetchProfitIncome();
 }, [dispatch]);
+
 
 
 
@@ -231,9 +239,9 @@ const handleDeleteNeed = async (id) => {
             <StatCard
               icon={Wallet}
               title="General Income"
-              amount={totals.generalIncome}
+              amount={generalIncome}
               color="text-green-600"
-              subtitle={`Business: $${totals.businessIncome.toLocaleString()} | Other: $${totals.otherIncome.toLocaleString()}`}
+              subtitle={`Business: $${totals.businessIncome.toLocaleString()} | Other: $${totals.otherIncome.toLocaleString()} | exchange: $${(totals.exchangeIncome ?? 0).toLocaleString()} `}
             />
             <StatCard
               icon={HeartHandshake}
